@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Nutritionist Clinic | Student Assessment</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Outfit', sans-serif; background-color: #f1f5f9; -webkit-tap-highlight-color: transparent; }
+        .pantry-item.selected { border-color: #059669; background-color: #ecfdf5; transform: scale(1.02); }
+        @keyframes pop { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .animate-pop { animation: pop 0.3s ease-out forwards; }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <div id="app" class="max-w-md mx-auto min-h-screen flex flex-col bg-white shadow-2xl relative overflow-hidden">
+        
+        <!-- Registration Overlay -->
+        <div id="auth-overlay" class="fixed inset-0 z-[100] bg-emerald-900 flex flex-col items-center justify-center p-8 text-center">
+            <div class="w-20 h-20 bg-white/20 rounded-3xl flex items-center justify-center text-4xl mb-6">🩺</div>
+            <h1 class="text-3xl font-bold text-white mb-2">Student Portal</h1>
+            <p class="text-emerald-200 mb-8 text-sm">Results will be recorded in the class Excel sheet via Google Forms.</p>
+            
+            <div class="w-full space-y-4">
+                <input type="text" id="reg-name" placeholder="Full Name" class="w-full px-5 py-4 rounded-2xl bg-white/10 border border-white/20 text-white placeholder:text-emerald-300 outline-none focus:border-white transition-all">
+                <input type="text" id="reg-roll" placeholder="Roll Number (e.g. 24-BS-01)" class="w-full px-5 py-4 rounded-2xl bg-white/10 border border-white/20 text-white placeholder:text-emerald-300 outline-none focus:border-white transition-all">
+                <button id="start-btn" class="w-full bg-white text-emerald-900 py-4 rounded-2xl font-bold shadow-xl active:scale-95 transition-all">Start Assessment</button>
+            </div>
+        </div>
+
+        <!-- Header -->
+        <header class="bg-emerald-900 text-white p-6 rounded-b-[40px] shadow-lg">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h1 class="text-xl font-bold">The Student Clinic</h1>
+                    <p id="user-display" class="text-emerald-200 text-xs text-uppercase">Preparing Clinic...</p>
+                </div>
+                <div class="bg-white/20 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                    Case <span id="case-num">1</span>/5
+                </div>
+            </div>
+            
+            <div id="patient-box" class="mt-6 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 animate-pop">
+                <div class="flex items-center gap-3 mb-2">
+                    <div id="patient-emoji" class="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center text-lg">🎓</div>
+                    <div>
+                        <h2 id="patient-name" class="font-semibold text-sm">Patient</h2>
+                        <p class="text-[10px] text-emerald-300 uppercase tracking-widest">Medical Context</p>
+                    </div>
+                </div>
+                <p id="patient-complaint" class="text-sm italic leading-snug">Loading clinical case...</p>
+            </div>
+        </header>
+
+        <!-- Prescription Area -->
+        <main class="flex-1 p-6 space-y-6 overflow-y-auto">
+            <div class="space-y-4">
+                <div>
+                    <p class="text-xs font-semibold mb-2 text-slate-500 uppercase tracking-wider">Energy Base (Carbs)</p>
+                    <div class="grid grid-cols-3 gap-2" id="base-pantry"></div>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold mb-2 text-slate-500 uppercase tracking-wider">Brain Structure (Proteins/Fats)</p>
+                    <div class="grid grid-cols-3 gap-2" id="protein-pantry"></div>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold mb-2 text-slate-500 uppercase tracking-wider">Cognitive Boosters</p>
+                    <div class="grid grid-cols-3 gap-2" id="extra-pantry"></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <div class="p-6 bg-slate-50 border-t border-slate-100">
+            <button id="prescribe-btn" class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-emerald-200 disabled:opacity-50" disabled>
+                Submit Prescription
+            </button>
+        </div>
+
+        <!-- Feedback Overlay -->
+        <div id="feedback-overlay" class="fixed inset-0 bg-slate-900/95 z-[110] p-8 flex flex-col justify-center text-white hidden">
+            <h2 class="text-2xl font-bold mb-6">Case Analysis</h2>
+            <div class="space-y-6 mb-8">
+                <div>
+                    <div class="flex justify-between text-xs mb-1"><span class="text-slate-400">Neuro-Nutrient Density</span><span id="stat-nc">0%</span></div>
+                    <div class="h-1.5 w-full bg-white/10 rounded-full"><div id="bar-nc" class="h-full bg-indigo-400 rounded-full transition-all duration-1000"></div></div>
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs mb-1"><span class="text-slate-400">Glycemic Stability</span><span id="stat-gl">0%</span></div>
+                    <div class="h-1.5 w-full bg-white/10 rounded-full"><div id="bar-gl" class="h-full bg-amber-400 rounded-full transition-all duration-1000"></div></div>
+                </div>
+            </div>
+            <p id="science-feedback" class="text-sm text-slate-300 leading-relaxed italic mb-8 border-l-2 border-emerald-500 pl-4"></p>
+            <button id="next-patient" class="w-full bg-white text-slate-900 py-4 rounded-2xl font-bold">Continue</button>
+        </div>
+
+        <!-- Final Submission Screen -->
+        <div id="final-screen" class="fixed inset-0 z-[120] bg-white flex flex-col items-center justify-center p-8 text-center hidden">
+            <div class="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center text-5xl mb-6">✅</div>
+            <h2 class="text-3xl font-bold text-slate-900 mb-2">Assessment Complete</h2>
+            <p class="text-slate-500 mb-8">Your results are being synced to the class database.</p>
+            
+            <div class="bg-slate-50 p-6 rounded-3xl w-full mb-8">
+                <p class="text-[10px] uppercase font-bold tracking-widest text-slate-400 mb-1">Your Final Score</p>
+                <div id="final-total" class="text-6xl font-black text-emerald-600">0</div>
+            </div>
+
+            <p id="sync-status" class="text-xs text-emerald-600 font-bold mb-8 italic">Sending to spreadsheet...</p>
+            
+            <button onclick="location.reload()" class="w-full border-2 border-slate-100 text-slate-600 py-4 rounded-2xl font-bold">Restart Session</button>
+        </div>
+
+    </div>
+
+    <script>
+        /**
+         * GOOGLE FORM CONFIGURATION
+         * Form ID: 1FAIpQLSffGG0kDwADg2AKKv6nbsJMfpIgCbSacN9eLl0Ep4rvVed_MA
+         */
+        const GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSffGG0kDwADg2AKKv6nbsJMfpIgCbSacN9eLl0Ep4rvVed_MA/formResponse";
+        const ENTRY_IDS = {
+            name: "entry.1760225948", 
+            roll: "entry.1838509580",
+            score: "entry.269369067"
+        };
+
+        let userName = "";
+        let rollNumber = "";
+        let currentScore = 0;
+        let currentCaseIndex = 0;
+        let selection = { base: null, protein: null, extra: null };
+
+        const pantry = {
+            bases: [
+                { id: 'rice', name: 'White Rice', gl: 85, nc: 5, st: 30, icon: '🍚' },
+                { id: 'roti', name: 'Wheat Roti', gl: 35, nc: 15, st: 75, icon: '🫓' },
+                { id: 'paratha', name: 'Ghee Paratha', gl: 65, nc: 5, st: 95, icon: '🍳' }
+            ],
+            proteins: [
+                { id: 'daal', name: 'Mixed Daal', gl: 15, nc: 25, st: 70, icon: '🥣' },
+                { id: 'eggs', name: 'Boiled Eggs', gl: 5, nc: 60, st: 80, icon: '🥚' },
+                { id: 'chicken', name: 'Grilled Chicken', gl: 5, nc: 30, st: 85, icon: '🍗' }
+            ],
+            extras: [
+                { id: 'chai', name: 'Doodh Patti', gl: 70, nc: -10, st: 10, icon: '☕' },
+                { id: 'nuts', name: 'Akhrot', gl: 5, nc: 70, st: 40, icon: '🧠' },
+                { id: 'dahi', name: 'Dahi (Yogurt)', gl: 15, nc: 40, st: 50, icon: '🥛' }
+            ]
+        };
+
+        const cases = [
+            { name: "Bilal", emoji: "🎤", complaint: "Thesis presentation in 1 hour. Hands are shaking. Need to be calm but alert.", target: { gl: 'low', nc: 'high' }, advice: "Magnesium (Akhrot) stabilizes the nervous system. Sugar spikes from Chai worsen tremors." },
+            { name: "Sara", emoji: "📚", complaint: "Hostel life is draining me. I feel weak and my skin is breaking out.", target: { gl: 'low', nc: 'medium' }, advice: "Dahi (Probiotics) and Mash Daal provide the fiber needed to clear brain fog." },
+            { name: "Hamza", emoji: "💡", complaint: "Exam tonight. Need to study for 5 hours without sleeping.", target: { gl: 'low', nc: 'high' }, advice: "Choline (Eggs) powers memory. Avoid heavy Ghee/Oil which triggers sleep cycles." },
+            { name: "Zainab", emoji: "🏃‍♀️", complaint: "University sports gala! Need endurance but can't feel bloated.", target: { gl: 'medium', nc: 'low' }, advice: "Wheat Roti provides glycogen without the grease of a paratha." },
+            { name: "Ahmed", emoji: "💻", complaint: "Programming marathon. Brain feels overheated and I'm irritable.", target: { gl: 'low', nc: 'high' }, advice: "DHA in walnuts helps 'cool' cognitive load and repair cell membranes." }
+        ];
+
+        // UI Logic
+        document.getElementById('start-btn').onclick = () => {
+            userName = document.getElementById('reg-name').value.trim();
+            rollNumber = document.getElementById('reg-roll').value.trim();
+
+            if (!userName || !rollNumber) {
+                alert("Please enter both Name and Roll Number.");
+                return;
+            }
+
+            document.getElementById('auth-overlay').classList.add('hidden');
+            document.getElementById('user-display').innerText = `Dr. ${userName} (${rollNumber})`;
+            renderPantry();
+            updatePatient();
+        };
+
+        function renderPantry() {
+            renderCat('base-pantry', pantry.bases, 'base');
+            renderCat('protein-pantry', pantry.proteins, 'protein');
+            renderCat('extra-pantry', pantry.extras, 'extra');
+        }
+
+        function renderCat(id, items, type) {
+            const container = document.getElementById(id);
+            container.innerHTML = '';
+            items.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'pantry-item border-2 border-slate-100 rounded-2xl p-3 text-center cursor-pointer transition-all active:scale-95 bg-white';
+                div.innerHTML = `<div class="text-2xl mb-1">${item.icon}</div><div class="text-[10px] font-bold uppercase">${item.name}</div>`;
+                div.onclick = () => {
+                    document.querySelectorAll(`#${id} .pantry-item`).forEach(el => el.classList.remove('selected'));
+                    div.classList.add('selected');
+                    selection[type] = item;
+                    document.getElementById('prescribe-btn').disabled = !(selection.base && selection.protein && selection.extra);
+                };
+                container.appendChild(div);
+            });
+        }
+
+        function updatePatient() {
+            const p = cases[currentCaseIndex];
+            document.getElementById('case-num').innerText = currentCaseIndex + 1;
+            document.getElementById('patient-name').innerText = p.name;
+            document.getElementById('patient-emoji').innerText = p.emoji;
+            document.getElementById('patient-complaint').innerText = `"${p.complaint}"`;
+            selection = { base: null, protein: null, extra: null };
+            document.querySelectorAll('.pantry-item').forEach(el => el.classList.remove('selected'));
+            document.getElementById('prescribe-btn').disabled = true;
+        }
+
+        document.getElementById('prescribe-btn').onclick = () => {
+            const avgGL = (selection.base.gl + selection.protein.gl + selection.extra.gl) / 3;
+            const avgNC = (selection.base.nc + selection.protein.nc + selection.extra.nc) / 3;
+
+            const p = cases[currentCaseIndex];
+            let points = 0;
+            if (p.target.gl === 'low' && avgGL < 45) points += 20;
+            else if (p.target.gl === 'medium' && avgGL >= 45 && avgGL < 65) points += 20;
+            if (p.target.nc === 'high' && avgNC > 40) points += 20;
+            else if (p.target.nc === 'medium' && avgNC >= 20) points += 20;
+            
+            currentScore += points;
+
+            document.getElementById('stat-gl').innerText = Math.round(avgGL) + '%';
+            document.getElementById('stat-nc').innerText = Math.round(avgNC) + '%';
+            document.getElementById('bar-gl').style.width = avgGL + '%';
+            document.getElementById('bar-nc').style.width = avgNC + '%';
+            document.getElementById('science-feedback').innerText = p.advice;
+            document.getElementById('feedback-overlay').classList.remove('hidden');
+        };
+
+        document.getElementById('next-patient').onclick = async () => {
+            document.getElementById('feedback-overlay').classList.add('hidden');
+            if (currentCaseIndex < cases.length - 1) {
+                currentCaseIndex++;
+                updatePatient();
+            } else {
+                submitToGoogleSheet();
+            }
+        };
+
+        function submitToGoogleSheet() {
+            document.getElementById('final-screen').classList.remove('hidden');
+            document.getElementById('final-total').innerText = currentScore;
+
+            const formData = new FormData();
+            formData.append(ENTRY_IDS.name, userName);
+            formData.append(ENTRY_IDS.roll, rollNumber);
+            formData.append(ENTRY_IDS.score, currentScore);
+
+            fetch(GOOGLE_FORM_URL, {
+                method: "POST",
+                mode: "no-cors",
+                body: formData
+            }).then(() => {
+                document.getElementById('sync-status').innerText = "Data saved to spreadsheet successfully!";
+            }).catch(err => {
+                document.getElementById('sync-status').innerText = "Sync delayed. Please check internet.";
+                console.error("Submission failed", err);
+            });
+        }
+    </script>
+</body>
+</html>
