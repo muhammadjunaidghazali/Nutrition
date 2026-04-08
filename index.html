@@ -11,6 +11,7 @@
         .pantry-item.selected { border-color: #059669; background-color: #ecfdf5; transform: scale(1.02); }
         @keyframes pop { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         .animate-pop { animation: pop 0.3s ease-out forwards; }
+        .success-accent { color: #059669; }
     </style>
 </head>
 <body class="text-slate-800">
@@ -21,7 +22,7 @@
         <div id="auth-overlay" class="fixed inset-0 z-[100] bg-emerald-900 flex flex-col items-center justify-center p-8 text-center">
             <div class="w-20 h-20 bg-white/20 rounded-3xl flex items-center justify-center text-4xl mb-6">🩺</div>
             <h1 class="text-3xl font-bold text-white mb-2">Student Portal</h1>
-            <p class="text-emerald-200 mb-8 text-sm">Results will be recorded in the class Excel sheet via Google Forms.</p>
+            <p class="text-emerald-200 mb-8 text-sm">Please enter your official details to begin.</p>
             
             <div class="w-full space-y-4">
                 <input type="text" id="reg-name" placeholder="Full Name" class="w-full px-5 py-4 rounded-2xl bg-white/10 border border-white/20 text-white placeholder:text-emerald-300 outline-none focus:border-white transition-all">
@@ -35,7 +36,7 @@
             <div class="flex justify-between items-start">
                 <div>
                     <h1 class="text-xl font-bold">The Student Clinic</h1>
-                    <p id="user-display" class="text-emerald-200 text-xs text-uppercase">Preparing Clinic...</p>
+                    <p id="user-display" class="text-emerald-200 text-xs">Preparing Clinic...</p>
                 </div>
                 <div class="bg-white/20 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
                     Case <span id="case-num">1</span>/5
@@ -79,7 +80,7 @@
             </button>
         </div>
 
-        <!-- Feedback Overlay -->
+        <!-- Case Feedback Overlay -->
         <div id="feedback-overlay" class="fixed inset-0 bg-slate-900/95 z-[110] p-8 flex flex-col justify-center text-white hidden">
             <h2 class="text-2xl font-bold mb-6">Case Analysis</h2>
             <div class="space-y-6 mb-8">
@@ -97,24 +98,39 @@
         </div>
 
         <!-- Final Submission Screen -->
-        <div id="final-screen" class="fixed inset-0 z-[120] bg-white flex flex-col items-center justify-center p-8 text-center hidden">
-            <div class="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center text-5xl mb-6">✅</div>
-            <h2 class="text-3xl font-bold text-slate-900 mb-2">Assessment Complete</h2>
-            <p class="text-slate-500 mb-8">Your results are being synced to the class database.</p>
+        <div id="final-screen" class="fixed inset-0 z-[120] bg-white flex flex-col items-center justify-center p-8 text-center hidden overflow-y-auto">
+            <div class="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center text-4xl mb-4">🎖️</div>
+            <h2 class="text-2xl font-bold text-slate-900 mb-1">Assessment Finished</h2>
+            <p class="text-slate-500 text-sm mb-6">Checking connection to class spreadsheet...</p>
             
-            <div class="bg-slate-50 p-6 rounded-3xl w-full mb-8">
-                <p class="text-[10px] uppercase font-bold tracking-widest text-slate-400 mb-1">Your Final Score</p>
-                <div id="final-total" class="text-6xl font-black text-emerald-600">0</div>
+            <div class="bg-slate-50 p-6 rounded-3xl w-full mb-6 border border-slate-200">
+                <p class="text-[10px] uppercase font-bold tracking-widest text-slate-400 mb-1">Your Total Score</p>
+                <div id="final-total" class="text-5xl font-black text-emerald-600">0</div>
             </div>
 
-            <p id="sync-status" class="text-xs text-emerald-600 font-bold mb-8 italic">Sending to spreadsheet...</p>
+            <div id="sync-container" class="w-full space-y-4">
+                <p id="sync-status" class="text-xs text-emerald-600 font-bold italic">Attempting Automatic Sync...</p>
+                
+                <!-- Manual Backup Button (Hidden initially) -->
+                <div id="manual-backup" class="hidden animate-pop">
+                    <p class="text-[10px] text-rose-500 font-bold mb-3">Sync taking too long? Click below to submit manually:</p>
+                    <button id="manual-submit-btn" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold shadow-md">
+                        Submit Manually (Pre-filled)
+                    </button>
+                    
+                    <div class="mt-6 p-4 bg-slate-100 rounded-xl text-left">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Result Summary</p>
+                        <p id="summary-text" class="text-[11px] font-mono text-slate-600 break-all"></p>
+                    </div>
+                </div>
+            </div>
             
-            <button onclick="location.reload()" class="w-full border-2 border-slate-100 text-slate-600 py-4 rounded-2xl font-bold">Restart Session</button>
+            <button onclick="location.reload()" class="mt-8 text-slate-400 text-xs underline">Restart Session</button>
         </div>
 
-        <!-- HIDDEN FORM FOR DATA SUBMISSION -->
+        <!-- HIDDEN SUBMISSION FORM -->
         <form 
-            id="gform-submit" 
+            id="gform-hidden" 
             action="https://docs.google.com/forms/d/e/1FAIpQLSffGG0kDwADg2AKKv6nbsJMfpIgCbSacN9eLl0Ep4rvVed_MA/formResponse" 
             method="POST" 
             target="hidden_iframe" 
@@ -161,16 +177,13 @@
             { name: "Ahmed", emoji: "💻", complaint: "Programming marathon. Brain feels overheated and I'm irritable.", target: { gl: 'low', nc: 'high' }, advice: "DHA in walnuts helps 'cool' cognitive load and repair cell membranes." }
         ];
 
-        // UI Logic
         document.getElementById('start-btn').onclick = () => {
             userName = document.getElementById('reg-name').value.trim();
             rollNumber = document.getElementById('reg-roll').value.trim();
-
             if (!userName || !rollNumber) {
-                alert("Please enter both Name and Roll Number.");
+                alert("Please enter Name and Roll Number.");
                 return;
             }
-
             document.getElementById('auth-overlay').classList.add('hidden');
             document.getElementById('user-display').innerText = `Dr. ${userName} (${rollNumber})`;
             renderPantry();
@@ -178,25 +191,23 @@
         };
 
         function renderPantry() {
-            renderCat('base-pantry', pantry.bases, 'base');
-            renderCat('protein-pantry', pantry.proteins, 'protein');
-            renderCat('extra-pantry', pantry.extras, 'extra');
-        }
-
-        function renderCat(id, items, type) {
-            const container = document.getElementById(id);
-            container.innerHTML = '';
-            items.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'pantry-item border-2 border-slate-100 rounded-2xl p-3 text-center cursor-pointer transition-all active:scale-95 bg-white';
-                div.innerHTML = `<div class="text-2xl mb-1">${item.icon}</div><div class="text-[10px] font-bold uppercase">${item.name}</div>`;
-                div.onclick = () => {
-                    document.querySelectorAll(`#${id} .pantry-item`).forEach(el => el.classList.remove('selected'));
-                    div.classList.add('selected');
-                    selection[type] = item;
-                    document.getElementById('prescribe-btn').disabled = !(selection.base && selection.protein && selection.extra);
-                };
-                container.appendChild(div);
+            ['base-pantry', 'protein-pantry', 'extra-pantry'].forEach(id => {
+                const type = id.split('-')[0];
+                const items = pantry[type + 's'];
+                const container = document.getElementById(id);
+                container.innerHTML = '';
+                items.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'pantry-item border-2 border-slate-100 rounded-2xl p-3 text-center cursor-pointer bg-white';
+                    div.innerHTML = `<div class="text-2xl mb-1">${item.icon}</div><div class="text-[10px] font-bold uppercase">${item.name}</div>`;
+                    div.onclick = () => {
+                        document.querySelectorAll(`#${id} .pantry-item`).forEach(el => el.classList.remove('selected'));
+                        div.classList.add('selected');
+                        selection[type] = item;
+                        document.getElementById('prescribe-btn').disabled = !(selection.base && selection.protein && selection.extra);
+                    };
+                    container.appendChild(div);
+                });
             });
         }
 
@@ -214,16 +225,13 @@
         document.getElementById('prescribe-btn').onclick = () => {
             const avgGL = (selection.base.gl + selection.protein.gl + selection.extra.gl) / 3;
             const avgNC = (selection.base.nc + selection.protein.nc + selection.extra.nc) / 3;
-
             const p = cases[currentCaseIndex];
-            let points = 0;
-            if (p.target.gl === 'low' && avgGL < 45) points += 20;
-            else if (p.target.gl === 'medium' && avgGL >= 45 && avgGL < 65) points += 20;
-            if (p.target.nc === 'high' && avgNC > 40) points += 20;
-            else if (p.target.nc === 'medium' && avgNC >= 20) points += 20;
-            
-            currentScore += points;
-
+            let pts = 0;
+            if (p.target.gl === 'low' && avgGL < 45) pts += 20;
+            else if (p.target.gl === 'medium' && avgGL >= 45 && avgGL < 65) pts += 20;
+            if (p.target.nc === 'high' && avgNC > 40) pts += 20;
+            else if (p.target.nc === 'medium' && avgNC >= 20) pts += 20;
+            currentScore += pts;
             document.getElementById('stat-gl').innerText = Math.round(avgGL) + '%';
             document.getElementById('stat-nc').innerText = Math.round(avgNC) + '%';
             document.getElementById('bar-gl').style.width = avgGL + '%';
@@ -232,34 +240,43 @@
             document.getElementById('feedback-overlay').classList.remove('hidden');
         };
 
-        document.getElementById('next-patient').onclick = async () => {
+        document.getElementById('next-patient').onclick = () => {
             document.getElementById('feedback-overlay').classList.add('hidden');
             if (currentCaseIndex < cases.length - 1) {
                 currentCaseIndex++;
                 updatePatient();
             } else {
-                submitToGoogleSheet();
+                finalizeSession();
             }
         };
 
-        function submitToGoogleSheet() {
+        function finalizeSession() {
             document.getElementById('final-screen').classList.remove('hidden');
             document.getElementById('final-total').innerText = currentScore;
-
-            // Fill the hidden form
+            
+            // Populate Form
             document.getElementById('form-name').value = userName;
             document.getElementById('form-roll').value = rollNumber;
             document.getElementById('form-score').value = currentScore;
 
-            // Submit using real HTML form targeting a hidden iframe
-            // This is the most reliable way to submit to Google Forms
+            // Attempt Silent Submission
             try {
-                document.getElementById('gform-submit').submit();
-                document.getElementById('sync-status').innerText = "Data synced! Please check the Sheet.";
-            } catch (e) {
-                document.getElementById('sync-status').innerText = "Submit failed. Verify Form is public.";
-            }
+                document.getElementById('gform-hidden').submit();
+            } catch (e) { console.error("Silent submit failed", e); }
+
+            // Set a timer to show manual backup if no confirmation (Google Forms doesn't return confirmation to iframes)
+            setTimeout(() => {
+                document.getElementById('sync-status').innerText = "Sync Status: Pending Response";
+                document.getElementById('manual-backup').classList.remove('hidden');
+                document.getElementById('summary-text').innerText = `Name: ${userName} | Roll: ${rollNumber} | Score: ${currentScore}`;
+            }, 3000);
         }
+
+        document.getElementById('manual-submit-btn').onclick = () => {
+            const baseUrl = "https://docs.google.com/forms/d/e/1FAIpQLSffGG0kDwADg2AKKv6nbsJMfpIgCbSacN9eLl0Ep4rvVed_MA/viewform";
+            const query = `?usp=pp_url&entry.1760225948=${encodeURIComponent(userName)}&entry.1838509580=${encodeURIComponent(rollNumber)}&entry.269369067=${currentScore}`;
+            window.open(baseUrl + query, '_blank');
+        };
     </script>
 </body>
 </html>
