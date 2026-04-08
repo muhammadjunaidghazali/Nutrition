@@ -117,8 +117,10 @@
     <script>
         /**
          * GOOGLE FORM CONFIGURATION
+         * Form ID: 1FAIpQLSffGG0kDwADg2AKKv6nbsJMfpIgCbSacN9eLl0Ep4rvVed_MA
          */
         const GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSffGG0kDwADg2AKKv6nbsJMfpIgCbSacN9eLl0Ep4rvVed_MA/formResponse";
+        
         const ENTRY_IDS = {
             name: "entry.1760225948", 
             roll: "entry.1838509580",
@@ -242,7 +244,7 @@
             document.getElementById('final-screen').classList.remove('hidden');
             document.getElementById('final-total').innerText = currentScore;
 
-            // Formulate data using URLSearchParams for correct x-www-form-urlencoded format
+            // Using URLSearchParams for correct x-www-form-urlencoded format
             const params = new URLSearchParams();
             params.append(ENTRY_IDS.name, userName);
             params.append(ENTRY_IDS.roll, rollNumber);
@@ -259,9 +261,8 @@
                 body: params.toString()
             }).then(() => {
                 document.getElementById('sync-status').innerText = "Data saved to spreadsheet successfully!";
-                console.log("Success: Request sent.");
             }).catch(err => {
-                document.getElementById('sync-status').innerText = "Sync delayed. Check Form Privacy Settings.";
+                document.getElementById('sync-status').innerText = "Sync failed. Check Form Settings.";
                 console.error("Submission failed", err);
             });
         }
