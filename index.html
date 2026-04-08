@@ -112,21 +112,23 @@
             <button onclick="location.reload()" class="w-full border-2 border-slate-100 text-slate-600 py-4 rounded-2xl font-bold">Restart Session</button>
         </div>
 
+        <!-- HIDDEN FORM FOR DATA SUBMISSION -->
+        <form 
+            id="gform-submit" 
+            action="https://docs.google.com/forms/d/e/1FAIpQLSffGG0kDwADg2AKKv6nbsJMfpIgCbSacN9eLl0Ep4rvVed_MA/formResponse" 
+            method="POST" 
+            target="hidden_iframe" 
+            style="display:none;"
+        >
+            <input type="hidden" name="entry.1760225948" id="form-name">
+            <input type="hidden" name="entry.1838509580" id="form-roll">
+            <input type="hidden" name="entry.269369067" id="form-score">
+        </form>
+        <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
+
     </div>
 
     <script>
-        /**
-         * GOOGLE FORM CONFIGURATION
-         * Form ID: 1FAIpQLSffGG0kDwADg2AKKv6nbsJMfpIgCbSacN9eLl0Ep4rvVed_MA
-         */
-        const GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSffGG0kDwADg2AKKv6nbsJMfpIgCbSacN9eLl0Ep4rvVed_MA/formResponse";
-        
-        const ENTRY_IDS = {
-            name: "entry.1760225948", 
-            roll: "entry.1838509580",
-            score: "entry.269369067"
-        };
-
         let userName = "";
         let rollNumber = "";
         let currentScore = 0;
@@ -244,27 +246,19 @@
             document.getElementById('final-screen').classList.remove('hidden');
             document.getElementById('final-total').innerText = currentScore;
 
-            // Using URLSearchParams for correct x-www-form-urlencoded format
-            const params = new URLSearchParams();
-            params.append(ENTRY_IDS.name, userName);
-            params.append(ENTRY_IDS.roll, rollNumber);
-            params.append(ENTRY_IDS.score, currentScore);
+            // Fill the hidden form
+            document.getElementById('form-name').value = userName;
+            document.getElementById('form-roll').value = rollNumber;
+            document.getElementById('form-score').value = currentScore;
 
-            console.log("Submitting to Google Form...");
-
-            fetch(GOOGLE_FORM_URL, {
-                method: "POST",
-                mode: "no-cors",
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body: params.toString()
-            }).then(() => {
-                document.getElementById('sync-status').innerText = "Data saved to spreadsheet successfully!";
-            }).catch(err => {
-                document.getElementById('sync-status').innerText = "Sync failed. Check Form Settings.";
-                console.error("Submission failed", err);
-            });
+            // Submit using real HTML form targeting a hidden iframe
+            // This is the most reliable way to submit to Google Forms
+            try {
+                document.getElementById('gform-submit').submit();
+                document.getElementById('sync-status').innerText = "Data synced! Please check the Sheet.";
+            } catch (e) {
+                document.getElementById('sync-status').innerText = "Submit failed. Verify Form is public.";
+            }
         }
     </script>
 </body>
